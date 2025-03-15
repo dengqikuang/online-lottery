@@ -256,7 +256,22 @@ document.addEventListener('DOMContentLoaded', function() {
         drawHistory.forEach((record, index) => {
             const listItem = document.createElement('li');
             listItem.className = 'list-group-item';
-            listItem.innerHTML = `<strong>第${index + 1}次抽奖</strong> (${record.timestamp})<br>${record.winners.join(', ')}`;
+            
+            // 格式化时间戳显示
+            const formattedTime = record.timestamp.split(' ')[1] || record.timestamp;
+            
+            // 创建更美观的历史记录项
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-primary rounded-pill me-2">${index + 1}</span>
+                        <strong>第${index + 1}次抽奖</strong>
+                    </div>
+                    <small class="text-muted"><i class="bi bi-clock"></i> ${formattedTime}</small>
+                </div>
+                <div class="mt-1 ps-4">${record.winners.join(', ')}</div>
+            `;
+            
             historyList.prepend(listItem);
         });
     }
