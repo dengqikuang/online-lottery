@@ -3,24 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线抽奖工具</title>
+    <title>霓虹抽奖 | 赛博舱抽奖系统 2077</title>
     <!-- 预加载关键资源 -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" as="style">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" as="style">
     
     <!-- 加载样式表 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap">
     <link rel="stylesheet" href="styles.css">
     
     <!-- 预加载Excel处理库 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+    <!-- 添加赛博风格的动态背景线 -->
+    <div class="background-lines" id="backgroundLines"></div>
+    
     <div class="container">
         <header class="text-center my-5">
-            <h1 class="display-4">在线抽奖工具</h1>
-            <p class="lead">上传名单，设置中奖人数，开始抽奖！</p>
+            <h1 class="display-4">霓虹抽奖系统</h1>
+            <p class="lead text-secondary">扫描人员数据，随机抽取中奖代码...</p>
         </header>
 
         <div class="row justify-content-center">
@@ -28,39 +33,39 @@
                 <div class="card shadow-lg mb-5">
                     <div class="card-body p-5">
                         <div class="mb-4">
-                            <h5 class="card-title mb-3">第一步：上传参与者名单</h5>
+                            <h5 class="card-title mb-3">>>> 数据扫描模块</h5>
                             <div class="file-upload-wrapper">
-                                <label for="fileUpload" class="form-label">支持 .xlsx 和 .csv 格式文件</label>
+                                <label for="fileUpload" class="form-label">支持 .xlsx 和 .csv 格式数据文件</label>
                                 <div class="d-flex align-items-center mb-2">
-                                    <button id="downloadExcel" class="btn btn-sm btn-outline-primary me-2">下载Excel模板</button>
+                                    <button id="downloadExcel" class="btn btn-sm btn-outline-primary me-2">下载数据模板</button>
                                     <a href="templates/新版抽奖名单模板.csv" download="抽奖名单模板.csv" class="btn btn-sm btn-outline-primary">下载CSV模板</a>
                                 </div>
                                 <input class="form-control" type="file" id="fileUpload" accept=".xlsx,.csv">
                             </div>
-                            <div id="fileInfo" class="mt-2 small text-muted"></div>
+                            <div id="fileInfo" class="mt-2 small text-secondary"></div>
                         </div>
 
                         <div class="mb-4">
-                            <h5 class="card-title mb-3">第二步：设置中奖人数</h5>
+                            <h5 class="card-title mb-3">>>> 数据提取配置</h5>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="winnerCount" min="1" value="1">
-                                <span class="input-group-text">人</span>
+                                <span class="input-group-text">个单位</span>
                             </div>
                         </div>
 
                         <div class="text-center mt-4">
-                            <button id="drawBtn" class="btn btn-primary btn-lg px-5" disabled>开始抽奖</button>
-                            <button id="reuploadBtn" class="btn btn-outline-secondary btn-lg px-5 ms-2" disabled>重新上传文件</button>
+                            <button id="drawBtn" class="btn btn-primary btn-lg px-5" disabled>启动抽取</button>
+                            <button id="reuploadBtn" class="btn btn-outline-secondary btn-lg px-5 ms-2" disabled>重新扫描</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="resultSection" class="card shadow-lg mb-5 d-none">
                     <div class="card-body p-5">
-                        <h5 class="card-title text-center mb-4">中奖结果</h5>
+                        <h5 class="card-title text-center mb-4">>>> 数据匹配结果</h5>
                         <div id="winnerDisplay" class="winner-display"></div>
                         <div id="winnerHistory" class="mt-4">
-                            <h6>历史中奖记录</h6>
+                            <h6>历史数据记录</h6>
                             <ul class="list-group" id="historyList"></ul>
                         </div>
                     </div>
@@ -74,7 +79,24 @@
         <div class="spinner-border text-light" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="mt-3 text-light">抽奖中...</p>
+        <p class="mt-3 text-light">数据筛选中...</p>
+    </div>
+    
+    <!-- 中奖结果弹窗 -->
+    <div class="cyber-modal" id="resultModal">
+        <div class="cyber-modal-content">
+            <div class="cyber-modal-header">
+                <h2>数据匹配成功</h2>
+                <button class="cyber-modal-close" id="modalClose">×</button>
+            </div>
+            <div class="cyber-modal-body">
+                <p>恭喜以下数据单元被系统选中：</p>
+                <div id="modalWinners"></div>
+            </div>
+            <div class="cyber-modal-footer">
+                <button class="cyber-modal-button" id="modalConfirm">确认</button>
+            </div>
+        </div>
     </div>
 
     <!-- 引入必要的脚本和样式 -->
@@ -100,10 +122,10 @@
             
             // 创建数据
             const data = [
-                ['姓名', '部门'],
-                ['张三', '市场部'],
-                ['李四', '技术部'],
-                ['王五', '行政部']
+                ['姓名', '手机号'],
+                ['张三', '13812345678'],
+                ['李四', '13987654321'],
+                ['王五', '13500000000']
             ];
             
             // 将数据转换为worksheet
@@ -112,7 +134,7 @@
             // 设置列宽
             ws['!cols'] = [
                 { wch: 15 }, // 姓名列宽
-                { wch: 20 }  // 部门列宽
+                { wch: 20 }  // 手机号列宽
             ];
             
             // 将worksheet添加到工作簿
@@ -120,6 +142,70 @@
             
             // 写入文件并下载
             XLSX.writeFile(wb, "抽奖名单模板.xlsx");
+        });
+        
+        // 创建赛博风格的动态背景线
+        createBackgroundLines();
+        
+        function createBackgroundLines() {
+            const container = document.getElementById('backgroundLines');
+            const lineCount = 10; // 线条数量
+            
+            for (let i = 0; i < lineCount; i++) {
+                const line = document.createElement('div');
+                line.className = 'bg-line';
+                
+                // 随机设置线条位置、宽度和动画时间
+                const width = Math.floor(Math.random() * 100) + 20; // 宽度20-120px
+                const left = Math.floor(Math.random() * 100); // 水平位置0-100%
+                const duration = Math.floor(Math.random() * 15) + 10; // 动画时间10-25s
+                const delay = Math.floor(Math.random() * 5); // 延迟0-5s
+                
+                line.style.width = width + '%';
+                line.style.left = left + '%';
+                line.style.animationDuration = duration + 's';
+                line.style.animationDelay = delay + 's';
+                
+                container.appendChild(line);
+            }
+        }
+    });
+    </script>
+    
+    <!-- 赛博风格弹窗脚本 -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const resultModal = document.getElementById('resultModal');
+        const modalClose = document.getElementById('modalClose');
+        const modalConfirm = document.getElementById('modalConfirm');
+        const modalWinners = document.getElementById('modalWinners');
+        
+        // 关闭弹窗
+        function closeModal() {
+            resultModal.classList.remove('show');
+        }
+        
+        // 绑定关闭事件
+        modalClose.addEventListener('click', closeModal);
+        modalConfirm.addEventListener('click', closeModal);
+        
+        // 自定义事件：监听新的中奖结果
+        document.addEventListener('winnersDrawn', function(e) {
+            const winners = e.detail.winners;
+            
+            // 清空之前的内容
+            modalWinners.innerHTML = '';
+            
+            // 添加中奖者到弹窗
+            winners.forEach(winner => {
+                const winnerElement = document.createElement('div');
+                winnerElement.className = 'cyber-modal-winner animate__animated animate__fadeInUp';
+                winnerElement.textContent = winner;
+                modalWinners.appendChild(winnerElement);
+            });
+            
+            // 显示弹窗
+            resultModal.classList.add('show');
         });
     });
     </script>
@@ -156,13 +242,17 @@
         winnerDisplay.innerHTML = '';
         newWinners.forEach((winner, index) => {
             const winnerCard = document.createElement('div');
-            winnerCard.className = 'winner-card';
-            // 只在第一个中奖者显示动画
-            if (index === 0) {
-                winnerCard.classList.add('animate__animated', 'animate__bounceIn');
-            }
+            winnerCard.className = 'winner-card animate-winner';
             winnerCard.textContent = winner;
             winnerDisplay.appendChild(winnerCard);
+            
+            // 触发自定义事件，通知弹窗显示
+            const event = new CustomEvent('winnersDrawn', {
+                detail: {
+                    winners: newWinners
+                }
+            });
+            document.dispatchEvent(event);
         });
     }
     </script>
@@ -172,7 +262,8 @@
     const preloadResources = () => {
         const resources = [
             'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css',
-            'https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css'
+            'https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css',
+            'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap'
         ];
         
         resources.forEach(url => {

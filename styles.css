@@ -1,42 +1,162 @@
-/* 全局样式 */
+/* 赛博荧虹风格全局样式 */
+:root {
+    --neon-primary: #fe00fe;    /* 霓虹粉红 */
+    --neon-secondary: #00fefe;  /* 霓虹青色 */
+    --neon-blue: #0064ff;       /* 霓虹蓝色 */
+    --neon-yellow: #fffd7f;     /* 霓虹黄色 */
+    --cyber-dark: #0f1035;      /* 深蓝背景 */
+    --cyber-medium: #1a1b46;    /* 中蓝背景 */
+    --cyber-light: #2e3192;     /* 亮蓝背景 */
+    --text-primary: #ffffff;    /* 白色文本 */
+    --text-secondary: #c4fdff;  /* 浅青色文本 */
+    --cyber-shadow: 0 0 10px rgba(254, 0, 254, 0.5), 0 0 20px rgba(0, 254, 254, 0.3);
+}
+
+@font-face {
+    font-family: 'Cyberpunk';
+    src: url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+}
+
 body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--cyber-dark);
+    background-image: 
+        linear-gradient(0deg, rgba(15, 16, 53, 0.9) 0%, rgba(26, 27, 70, 0.8) 100%),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="none" stroke="%232e3192" stroke-width="2" stroke-dasharray="5,5"/></svg>');
+    background-size: cover, 20px 20px;
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: 'Orbitron', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
 }
 
 .container {
     max-width: 1000px;
 }
 
-/* 卡片样式 */
+/* 标题霓虹效果 */
+h1.display-4 {
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--neon-primary), 0 0 20px var(--neon-secondary);
+    letter-spacing: 2px;
+    font-weight: 700;
+    position: relative;
+    animation: textGlow 2s infinite alternate;
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 0 0 5px var(--neon-primary), 0 0 10px var(--neon-secondary);
+    }
+    100% {
+        text-shadow: 0 0 20px var(--neon-primary), 0 0 30px var(--neon-secondary), 0 0 40px var(--neon-blue);
+    }
+}
+
+/* 赛博风格卡片 */
 .card {
-    border-radius: 15px;
-    border: none;
+    background-color: var(--cyber-medium);
+    border: 2px solid var(--neon-blue);
+    border-radius: 5px;
+    box-shadow: var(--cyber-shadow);
+    position: relative;
+    overflow: hidden;
 }
 
-.card:hover {
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-secondary));
+    animation: scanLine 4s linear infinite;
 }
 
-/* 按钮样式 */
+@keyframes scanLine {
+    0% {
+        left: -100%;
+    }
+    50%, 100% {
+        left: 100%;
+    }
+}
+
+.card-body {
+    position: relative;
+    z-index: 1;
+}
+
+/* 赛博按钮样式 */
 .btn-primary {
-    background-color: #4361ee;
-    border-color: #4361ee;
+    background-color: transparent;
+    color: var(--neon-secondary);
+    border: 2px solid var(--neon-secondary);
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 254, 254, 0.3);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 254, 254, 0.4), transparent);
+    transition: all 0.4s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
 }
 
 .btn-primary:hover {
-    background-color: #3a56d4;
-    border-color: #3a56d4;
-    box-shadow: 0 3px 8px rgba(67, 97, 238, 0.2);
+    background-color: var(--neon-secondary);
+    color: var(--cyber-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px rgba(0, 254, 254, 0.6);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    color: var(--neon-primary);
+    border: 2px solid var(--neon-primary);
+    border-radius: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(254, 0, 254, 0.3);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 
 .btn-outline-secondary:hover {
+    background-color: var(--neon-primary);
+    color: var(--cyber-dark);
+    box-shadow: 0 0 20px rgba(254, 0, 254, 0.6);
 }
 
-/* 文件上传样式 */
-.file-upload-wrapper {
-    position: relative;
-    margin-bottom: 15px;
+/* 表单样式 */
+.form-control, .input-group-text {
+    background-color: var(--cyber-dark);
+    border: 1px solid var(--neon-blue);
+    border-radius: 0;
+    color: var(--text-secondary);
+}
+
+.form-control:focus {
+    background-color: var(--cyber-dark);
+    border-color: var(--neon-secondary);
+    box-shadow: 0 0 10px rgba(0, 254, 254, 0.5);
+    color: var(--text-primary);
 }
 
 /* 中奖结果显示区域 */
@@ -48,20 +168,79 @@ body {
     align-items: center;
     gap: 15px;
     margin: 20px 0;
+    perspective: 1000px;
 }
 
 .winner-card {
-    background-color: #4361ee;
-    color: white;
-    padding: 15px 25px;
-    border-radius: 10px;
-    font-size: 1.2rem;
+    background-color: var(--cyber-light);
+    color: var(--text-primary);
+    padding: 20px 30px;
+    border: 2px solid var(--neon-secondary);
+    position: relative;
+    font-size: 1.3rem;
     font-weight: 600;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgba(0, 254, 254, 0.5);
+    text-align: center;
+    overflow: hidden;
+    transition: transform 0.5s, box-shadow 0.5s;
 }
 
-.winner-card:hover {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+.winner-card::before, .winner-card::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-secondary), transparent);
+    left: 0;
+}
+
+.winner-card::before {
+    top: 0;
+    animation: glowHorizontal 2s linear infinite;
+}
+
+.winner-card::after {
+    bottom: 0;
+    animation: glowHorizontal 2s linear infinite 1s;
+}
+
+@keyframes glowHorizontal {
+    0% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* 增强抽奖动画效果 */
+@keyframes winnerReveal {
+    0% {
+        transform: rotateY(180deg) scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: rotateY(180deg) scale(1.2);
+        box-shadow: 0 0 30px var(--neon-primary), 0 0 60px var(--neon-secondary);
+        opacity: 0.8;
+    }
+    100% {
+        transform: rotateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.winner-card.animate-winner {
+    animation: winnerReveal 1.5s ease-out, glowPulse 2s infinite alternate;
+}
+
+@keyframes glowPulse {
+    0% {
+        box-shadow: 0 0 15px var(--neon-secondary), 0 0 30px var(--neon-blue);
+    }
+    100% {
+        box-shadow: 0 0 30px var(--neon-primary), 0 0 60px var(--neon-blue);
+    }
 }
 
 /* 加载动画 */
@@ -71,7 +250,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(15, 16, 53, 0.8);
+    backdrop-filter: blur(5px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -79,27 +259,204 @@ body {
     z-index: 9999;
 }
 
+.loading-overlay .spinner-border {
+    color: var(--neon-primary) !important;
+    width: 4rem;
+    height: 4rem;
+    border-width: 0.25em;
+    filter: drop-shadow(0 0 10px var(--neon-secondary));
+}
+
 /* 历史记录样式 */
 #historyList {
     max-height: 300px;
     overflow-y: auto;
-    border-radius: 10px;
-    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.08);
+    border-radius: 0;
+    background-color: var(--cyber-medium);
+    border: 1px solid var(--neon-blue);
 }
 
 #historyList .list-group-item {
+    background-color: transparent;
+    border-color: var(--neon-blue);
+    color: var(--text-secondary);
     border-left: none;
     border-right: none;
 }
 
-#historyList .list-group-item:hover {
-    background-color: #f8f9fa;
+#historyList .list-group-item:first-child {
+    border-top: none;
+    border-left: 3px solid var(--neon-primary);
+    position: relative;
+    overflow: hidden;
 }
 
-#historyList .list-group-item:first-child {
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-    background-color: #e7f0fd;
+#historyList .list-group-item:first-child::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(254, 0, 254, 0.1), 
+        rgba(0, 254, 254, 0.1));
+    animation: historyHighlight 3s infinite alternate;
+}
+
+@keyframes historyHighlight {
+    0% {
+        opacity: 0.1;
+    }
+    100% {
+        opacity: 0.3;
+    }
+}
+
+/* 结果弹窗样式 */
+.cyber-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 16, 53, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s;
+}
+
+.cyber-modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cyber-modal-content {
+    background-color: var(--cyber-medium);
+    border: 3px solid var(--neon-secondary);
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    padding: 40px;
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+    box-shadow: 0 0 30px rgba(0, 254, 254, 0.5), 0 0 60px rgba(254, 0, 254, 0.3);
+    transform: translateY(30px);
+    transition: transform 0.5s;
+}
+
+.cyber-modal.show .cyber-modal-content {
+    transform: translateY(0);
+}
+
+.cyber-modal-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.cyber-modal-header h2 {
+    font-size: 2rem;
+    color: var(--neon-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 0;
+    text-shadow: 0 0 10px var(--neon-secondary);
+}
+
+.cyber-modal-body {
+    text-align: center;
+}
+
+.cyber-modal-winner {
+    display: inline-block;
+    margin: 10px 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--neon-primary);
+    text-shadow: 0 0 10px var(--neon-primary);
+    padding: 15px 30px;
+    background-color: var(--cyber-dark);
+    border: 2px solid var(--neon-primary);
+}
+
+.cyber-modal-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    width: 30px;
+    height: 30px;
+    background-color: transparent;
+    border: 2px solid var(--neon-primary);
+    color: var(--neon-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.cyber-modal-close:hover {
+    background-color: var(--neon-primary);
+    color: var(--cyber-dark);
+    transform: rotate(90deg);
+}
+
+.cyber-modal-footer {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.cyber-modal-button {
+    background-color: transparent;
+    color: var(--neon-secondary);
+    border: 2px solid var(--neon-secondary);
+    padding: 10px 30px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 1px;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.cyber-modal-button:hover {
+    background-color: var(--neon-secondary);
+    color: var(--cyber-dark);
+    box-shadow: 0 0 20px rgba(0, 254, 254, 0.6);
+}
+
+/* 赛博风格动态背景线 */
+.background-lines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.bg-line {
+    position: absolute;
+    height: 1px;
+    background-color: var(--neon-blue);
+    opacity: 0.3;
+    animation: scanBg linear infinite;
+}
+
+@keyframes scanBg {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100vh);
+    }
 }
 
 /* 响应式调整 */
@@ -112,28 +469,82 @@ body {
         padding: 0.5rem 1.5rem;
         font-size: 1rem;
     }
+    
+    .cyber-modal-content {
+        padding: 20px;
+    }
+    
+    .cyber-modal-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .cyber-modal-winner {
+        font-size: 1.3rem;
+        padding: 10px 20px;
+    }
 }
 
-/* 动画效果 */
-.animate-winner {
+/* 配置文件上传按钮样式 */
+input[type="file"] {
+    background-color: var(--cyber-dark);
+    color: var(--text-secondary);
+    border: 1px solid var(--neon-blue);
+    border-radius: 0;
+    padding: 10px;
 }
 
-/* 添加简化的CSS变量以减少重复 */
-:root {
-    --primary-color: #4361ee;
-    --hover-color: #3a56d4;
-    --shadow-sm: 0 3px 6px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
+input[type="file"]::-webkit-file-upload-button {
+    background-color: var(--neon-blue);
+    color: var(--text-primary);
+    border: none;
+    padding: 8px 16px;
+    margin-right: 10px;
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
-/* 添加关键渲染路径优化 */
+input[type="file"]::-webkit-file-upload-button:hover {
+    background-color: var(--neon-primary);
+}
+
+/* 添加荧光边框动画 */
+@keyframes borderGlow {
+    0% {
+        box-shadow: 0 0 5px var(--neon-secondary);
+    }
+    50% {
+        box-shadow: 0 0 15px var(--neon-primary), 0 0 30px var(--neon-secondary);
+    }
+    100% {
+        box-shadow: 0 0 5px var(--neon-secondary);
+    }
+}
+
+/* 添加闪烁效果 */
+.cyber-flicker {
+    animation: flicker 1.5s infinite alternate;
+}
+
+@keyframes flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--neon-primary), 
+                     0 0 20px var(--neon-secondary);
+    }
+    20%, 24%, 55% {
+        opacity: 0.5;
+        text-shadow: none;
+    }
+}
+
+/* 配置confetti画布样式 */
 #confetti-canvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
+    z-index: 9990;
     pointer-events: none;
-    will-change: transform; /* 告诉浏览器这个元素会被频繁更改 */
 }
