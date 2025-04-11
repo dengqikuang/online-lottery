@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const historyList = document.getElementById('historyList');
     const loadingOverlay = document.getElementById('loadingOverlay');
 
+    // 设置文件大小限制和超时时间
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const TIMEOUT = 10000; // 10秒
+
     // 存储参与者和已中奖者
     let participants = [];
     let winners = [];
@@ -36,6 +40,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = e.target.files[0];
         if (!file) return;
 
+        // 检查文件大小
+        if (file.size > MAX_FILE_SIZE) {
+            alert('文件大小超过限制（最大5MB）');
+            fileUpload.value = '';
+            return;
+        }
+
         // 显示文件信息
         fileInfo.textContent = `已选择文件: ${file.name}`;
 
@@ -61,45 +72,102 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示加载动画
         loadingOverlay.classList.remove('d-none');
 
-        // 根据文件类型处理
-        const fileReader = new FileReader();
-        fileReader.onload = function(event) {
+        // 使用Promise和超时处理文件读取
+        const processFileWithTimeout = new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error('文件处理超时'));
+            }, TIMEOUT);
+
             try {
-                if (file.name.endsWith('.csv')) {
-                    // 处理CSV文件
-                    const csvData = event.target.result;
-                    processCSV(csvData);
-                } else if (file.name.endsWith('.xlsx')) {
-                    // 处理Excel文件
-                    const data = new Uint8Array(event.target.result);
-                    processExcel(data);
+                // 根据文件大小选择处理方式
+                if (file.size > 1 * 1024 * 1024) { // 大于1MB的文件使用延迟处理
+                    // 使用分块处理大文件
+                    processLargeFile(file).then(result => {
+                        clearTimeout(timeoutId);
+                        resolve(result);
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                        reject(error);
+                    });
+                } else {
+                    // 小文件直接处理
+                    processSmallFile(file).then(result => {
+                        clearTimeout(timeoutId);
+                        resolve(result);
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                        reject(error);
+                    });
                 }
-
-                // 启用抽奖按钮
-                drawBtn.disabled = false;
-                reuploadBtn.disabled = false;
-
-                // 隐藏加载动画
-                loadingOverlay.classList.add('d-none');
             } catch (error) {
-                console.error('文件处理错误:', error);
-                fileInfo.textContent = '文件处理错误，请检查文件格式';
-                fileInfo.style.color = 'red';
-                loadingOverlay.classList.add('d-none');
+                clearTimeout(timeoutId);
+                reject(error);
             }
-        };
+        });
 
-        fileReader.onerror = function() {
-            fileInfo.textContent = '文件读取错误';
+        // 处理文件并更新UI
+        processFileWithTimeout.then(() => {
+            // 启用抽奖按钮
+            drawBtn.disabled = false;
+            reuploadBtn.disabled = false;
+            
+            // 隐藏加载动画
+            loadingOverlay.classList.add('d-none');
+        }).catch(error => {
+            console.error('文件处理错误:', error);
+            fileInfo.textContent = '文件处理错误，请检查文件格式或尝试使用更小的文件';
             fileInfo.style.color = 'red';
             loadingOverlay.classList.add('d-none');
-        };
+            fileUpload.value = '';
+        });
+    }
 
-        if (file.name.endsWith('.csv')) {
-            fileReader.readAsText(file);
-        } else if (file.name.endsWith('.xlsx')) {
-            fileReader.readAsArrayBuffer(file);
-        }
+    // 处理小文件
+    function processSmallFile(file) {
+        return new Promise((resolve, reject) => {
+            const fileReader = new FileReader();
+            
+            fileReader.onload = function(event) {
+                try {
+                    if (file.name.endsWith('.csv')) {
+                        // 处理CSV文件
+                        const csvData = event.target.result;
+                        processCSV(csvData);
+                        resolve();
+                    } else if (file.name.endsWith('.xlsx')) {
+                        // 处理Excel文件
+                        const data = new Uint8Array(event.target.result);
+                        processExcel(data);
+                        resolve();
+                    } else {
+                        reject(new Error('不支持的文件格式'));
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            fileReader.onerror = function() {
+                reject(new Error('文件读取错误'));
+            };
+
+            if (file.name.endsWith('.csv')) {
+                fileReader.readAsText(file);
+            } else if (file.name.endsWith('.xlsx')) {
+                fileReader.readAsArrayBuffer(file);
+            } else {
+                reject(new Error('不支持的文件格式'));
+            }
+        });
+    }
+
+    // 处理大文件 - 使用延迟处理避免UI阻塞
+    function processLargeFile(file) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                processSmallFile(file).then(resolve).catch(reject);
+            }, 100); // 短暂延迟以避免UI阻塞
+        });
     }
 
     // 处理CSV文件
@@ -133,6 +201,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 处理Excel文件
     function processExcel(data) {
+        // 检查XLSX库是否已加载
+        if (typeof XLSX === 'undefined') {
+            throw new Error('XLSX库尚未加载，请刷新页面重试');
+        }
+        
         const workbook = XLSX.read(data, {type: 'array'});
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
@@ -173,14 +246,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取中奖人数
         const count = parseInt(winnerCount.value);
         if (isNaN(count) || count < 1) {
-            alert('请输入有效的中奖人数');
+            alert('请输入有效的数据提取数量');
             return;
         }
 
         // 检查是否有足够的参与者
         const availableParticipants = participants.filter(p => !winners.includes(p));
         if (availableParticipants.length < count) {
-            alert(`参与者不足！仅剩 ${availableParticipants.length} 名未中奖参与者`);
+            alert(`可用数据不足！仅剩 ${availableParticipants.length} 条未提取数据`);
             
             // 显示结果区域并添加提示信息
             resultSection.classList.remove('d-none');
@@ -188,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const noWinnerMsg = document.createElement('div');
             noWinnerMsg.className = 'alert alert-warning text-center';
-            noWinnerMsg.innerHTML = `<strong>可中奖人数不足！</strong><br>需要 ${count} 人，但仅剩 ${availableParticipants.length} 名未中奖参与者`;
+            noWinnerMsg.innerHTML = `<strong>可用数据不足！</strong><br>需要 ${count} 条，但仅剩 ${availableParticipants.length} 条未提取数据`;
             winnerDisplay.appendChild(noWinnerMsg);
             
             // 如果所有参与者都已中奖，禁用抽奖按钮
@@ -202,9 +275,89 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示加载动画
         loadingOverlay.classList.remove('d-none');
 
-        // 模拟抽奖过程（延迟以增加期待感）
-        setTimeout(() => {
-            // 随机抽取中奖者
+        // 创建强化版随机选择动画
+        const drawingAnimation = async () => {
+            // 预选多次以增加动画效果
+            const preSelectionCount = 15; // 预选次数
+            const preSelectionDelay = 80; // 每次预选的延迟时间(ms)
+            const finalDelay = 300; // 最终结果前的延迟
+            
+            const fakeDisplay = document.createElement('div');
+            fakeDisplay.className = 'winner-display';
+            fakeDisplay.style.position = 'fixed';
+            fakeDisplay.style.top = '50%';
+            fakeDisplay.style.left = '50%';
+            fakeDisplay.style.transform = 'translate(-50%, -50%)';
+            fakeDisplay.style.zIndex = '9998';
+            document.body.appendChild(fakeDisplay);
+            
+            // 创建音效
+            const createBeepSound = (frequency = 440, duration = 100, volume = 0.1) => {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    gainNode.gain.value = volume;
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+                    
+                    oscillator.start();
+                    
+                    setTimeout(() => {
+                        oscillator.stop();
+                    }, duration);
+                } catch (e) {
+                    console.log('音效播放失败', e);
+                }
+            };
+            
+            // 随机选择函数
+            const getRandomParticipants = (count, exclude = []) => {
+                const availableForSelection = availableParticipants.filter(p => !exclude.includes(p));
+                const selected = [];
+                
+                for (let i = 0; i < count; i++) {
+                    if (availableForSelection.length === 0) break;
+                    const randomIndex = Math.floor(Math.random() * availableForSelection.length);
+                    selected.push(availableForSelection[randomIndex]);
+                    availableForSelection.splice(randomIndex, 1);
+                }
+                
+                return selected;
+            };
+            
+            // 预选动画
+            for (let i = 0; i < preSelectionCount; i++) {
+                const fakeWinners = getRandomParticipants(count);
+                
+                fakeDisplay.innerHTML = '';
+                fakeWinners.forEach(winner => {
+                    const winnerCard = document.createElement('div');
+                    winnerCard.className = 'winner-card cyber-flicker';
+                    winnerCard.textContent = winner;
+                    fakeDisplay.appendChild(winnerCard);
+                    
+                    // 添加随机抖动效果
+                    const randomShift = () => Math.random() * 4 - 2; // -2 到 2 像素
+                    winnerCard.style.transform = `translate(${randomShift()}px, ${randomShift()}px)`;
+                });
+                
+                // 音效，频率逐渐升高
+                const freq = 440 + (i * 40);
+                createBeepSound(freq, 50, 0.05);
+                
+                // 等待下一次预选
+                await new Promise(resolve => setTimeout(resolve, preSelectionDelay));
+            }
+            
+            // 移除临时显示
+            document.body.removeChild(fakeDisplay);
+            
+            // 最终选择
             const newWinners = [];
             const tempParticipants = [...availableParticipants];
 
@@ -213,7 +366,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 newWinners.push(tempParticipants[randomIndex]);
                 tempParticipants.splice(randomIndex, 1);
             }
-
+            
+            // 更大的成功音效
+            createBeepSound(880, 150, 0.1);
+            setTimeout(() => createBeepSound(1200, 200, 0.1), 150);
+            
             // 更新中奖者列表
             winners = [...winners, ...newWinners];
 
@@ -225,85 +382,177 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // 显示结果
-            displayWinners(newWinners);
-            updateHistory();
-
-            // 隐藏加载动画
-            loadingOverlay.classList.add('d-none');
-
-            // 显示结果区域
-            resultSection.classList.remove('d-none');
-
-            // 创建彩花效果
-            createConfetti();
-        }, 1500);
+            setTimeout(() => {
+                displayWinners(newWinners);
+                updateHistory();
+                createConfetti();
+                
+                // 显示结果区域
+                resultSection.classList.remove('d-none');
+                
+                // 隐藏加载动画
+                loadingOverlay.classList.add('d-none');
+                
+                // 触发自定义事件，通知弹窗显示
+                setTimeout(() => {
+                    const event = new CustomEvent('winnersDrawn', {
+                        detail: {
+                            winners: newWinners
+                        }
+                    });
+                    document.dispatchEvent(event);
+                }, 500); // 给显示动画一点时间
+                
+            }, finalDelay);
+        };
+        
+        // 执行抽奖动画
+        drawingAnimation();
     }
 
-    // 显示中奖者
+    // 显示中奖者 - 强化动画效果
     function displayWinners(newWinners) {
         winnerDisplay.innerHTML = '';
-        newWinners.forEach(winner => {
+        
+        // 添加容器以实现3D效果
+        const container3D = document.createElement('div');
+        container3D.className = 'winner-container-3d';
+        container3D.style.perspective = '1000px';
+        container3D.style.width = '100%';
+        container3D.style.display = 'flex';
+        container3D.style.flexWrap = 'wrap';
+        container3D.style.justifyContent = 'center';
+        container3D.style.gap = '20px';
+        
+        winnerDisplay.appendChild(container3D);
+        
+        newWinners.forEach((winner, index) => {
             const winnerCard = document.createElement('div');
-            winnerCard.className = 'winner-card animate__animated animate__bounceIn';
+            winnerCard.className = 'winner-card animate-winner';
             winnerCard.textContent = winner;
-            winnerDisplay.appendChild(winnerCard);
+            
+            // 添加额外的动画效果
+            winnerCard.style.animationDelay = `${index * 0.2}s`;
+            
+            // 添加点击效果
+            winnerCard.addEventListener('click', function() {
+                this.classList.add('animate__animated', 'animate__pulse');
+                setTimeout(() => {
+                    this.classList.remove('animate__animated', 'animate__pulse');
+                }, 1000);
+            });
+            
+            container3D.appendChild(winnerCard);
         });
     }
-
+    
     // 更新历史记录
     function updateHistory() {
         historyList.innerHTML = '';
-        drawHistory.forEach((record, index) => {
+        
+        // 限制显示最近的10条记录以提高性能
+        const recentHistory = drawHistory.slice(-10);
+        
+        recentHistory.forEach((record, index) => {
             const listItem = document.createElement('li');
             listItem.className = 'list-group-item';
             
-            // 格式化时间戳显示
-            const formattedTime = record.timestamp.split(' ')[1] || record.timestamp;
+            // 添加编号
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'cyber-number me-2';
+            numberSpan.textContent = `#${drawHistory.length - index}`;
+            numberSpan.style.color = 'var(--neon-primary)';
+            numberSpan.style.fontWeight = 'bold';
             
-            // 创建更美观的历史记录项
-            listItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <span class="badge bg-primary rounded-pill me-2">${index + 1}</span>
-                        <strong>第${index + 1}次抽奖</strong>
-                    </div>
-                    <small class="text-muted"><i class="bi bi-clock"></i> ${formattedTime}</small>
-                </div>
-                <div class="mt-1 ps-4">${record.winners.join(', ')}</div>
-            `;
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'text-secondary small ms-2';
+            timeSpan.textContent = record.timestamp;
             
-            historyList.prepend(listItem);
+            const winnerSpan = document.createElement('div');
+            winnerSpan.className = 'mt-1';
+            winnerSpan.textContent = record.winners.join('、');
+            winnerSpan.style.color = 'var(--text-primary)';
+            
+            listItem.appendChild(numberSpan);
+            listItem.appendChild(timeSpan);
+            listItem.appendChild(winnerSpan);
+            historyList.appendChild(listItem);
         });
     }
 
-
-
-    // 创建彩花效果
+    // 增强彩花效果
     function createConfetti() {
-        const confettiSettings = { target: 'confetti-canvas' };
-        const confetti = new ConfettiGenerator(confettiSettings);
-        
-        // 创建canvas元素
-        let canvas = document.getElementById('confetti-canvas');
-        if (!canvas) {
-            canvas = document.createElement('canvas');
-            canvas.id = 'confetti-canvas';
-            canvas.style.position = 'fixed';
-            canvas.style.top = '0';
-            canvas.style.left = '0';
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
-            canvas.style.zIndex = '1000';
-            canvas.style.pointerEvents = 'none';
+        try {
+            if (typeof ConfettiGenerator === 'undefined') {
+                console.warn('彩花效果库未加载');
+                return;
+            }
+            
+            const canvasId = 'confetti-canvas';
+            
+            // 清除旧的canvas
+            let oldCanvas = document.getElementById(canvasId);
+            if (oldCanvas) {
+                oldCanvas.remove();
+            }
+            
+            // 创建新的canvas
+            const canvas = document.createElement('canvas');
+            canvas.id = canvasId;
             document.body.appendChild(canvas);
+            
+            // 赛博风格彩花配置
+            const confettiSettings = {
+                target: canvasId,
+                max: 120, // 增加粒子数量
+                size: 1.8,
+                animate: true,
+                props: ['circle', 'square', 'triangle', 'line'],
+                colors: [
+                    [254, 0, 254],    // 霓虹粉
+                    [0, 254, 254],    // 霓虹青
+                    [0, 100, 255],    // 蓝色
+                    [255, 255, 0],    // 黄色
+                    [255, 0, 128]     // 品红
+                ],
+                clock: 25, // 加快动画速度
+                start_from_edge: true,
+                respawn: true
+            };
+            
+            const confetti = new ConfettiGenerator(confettiSettings);
+            confetti.render();
+            
+            // 延长彩花持续时间
+            setTimeout(() => {
+                confetti.clear();
+                canvas.remove();
+            }, 5000); // 5秒后移除彩花效果
+        } catch (error) {
+            console.error('彩花效果创建失败:', error);
+        }
+    }
+    
+    // 预加载关键资源
+    function preloadResources() {
+        if (document.readyState === 'complete') {
+            return; // 页面已完全加载
         }
         
-        confetti.render();
+        const scripts = [
+            'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+            'https://cdn.jsdelivr.net/npm/confetti-js@0.0.18/dist/index.min.js'
+        ];
         
-        // 3秒后移除彩花
-        setTimeout(() => {
-            confetti.clear();
-            canvas.remove();
-        }, 3000);
+        scripts.forEach(url => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = url;
+            link.as = 'script';
+            document.head.appendChild(link);
+        });
     }
+    
+    // 启动预加载
+    preloadResources();
 });
